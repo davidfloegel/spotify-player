@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 
 import fetch from 'node-fetch'
 import request from 'request'
+import { APP_URL } from '../../config'
 
 const spotifyClientId = 'dcc6e4f5c0c042deb35dd4d11d834bae'
 const spotifySecret = '87617bc959344652aa53ac8beba81aad'
@@ -9,7 +10,7 @@ const spotifySecret = '87617bc959344652aa53ac8beba81aad'
 export async function GET(req, res) {
     var authOptions = {
         body: new URLSearchParams({
-            redirect_uri: 'http://localhost:3000/auth/callback',
+            redirect_uri: `${APP_URL}/auth/callback`,
             grant_type: 'authorization_code',
         }),
         headers: {

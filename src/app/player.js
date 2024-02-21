@@ -86,7 +86,6 @@ export const Player = ({ token }) => {
 
     const onPlay = async () => {
         if (!currentTrack.track) {
-            alert('no track loaded')
             return
         }
 

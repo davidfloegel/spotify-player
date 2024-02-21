@@ -14,7 +14,7 @@ export async function GET(req, res) {
     var authOptions = {
         body: new URLSearchParams({
             code: code,
-            redirect_uri: `${APP_URL}/localhost:3000/auth/callback`,
+            redirect_uri: `${APP_URL}/auth/callback`,
             grant_type: 'authorization_code',
         }),
         headers: {

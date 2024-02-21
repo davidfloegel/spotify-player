@@ -1,27 +1,42 @@
 'use client'
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { Login } from "./login";
-import { useSearchParams } from "next/navigation";
-import { Player } from "./player";
+import Image from 'next/image'
+import { Suspense } from 'react'
+import { useEffect, useState } from 'react'
+import { Login } from './login'
+import { useSearchParams } from 'next/navigation'
+import { Player } from './player'
 
-export default function Home() {
-  const searchParams = useSearchParams();
-  const [token, setToken] = useState('');
-  
-  useEffect(() => {
-    const getToken = async () => {
-      setToken(searchParams.get('code'))
+const Page = () => {
+    const searchParams = useSearchParams()
+    const [token, setToken] = useState('')
+
+    useEffect(() => {
+        const getToken = async () => {
+            setToken(searchParams.get('code'))
+        }
+
+        getToken()
+    }, [searchParams.get('code')])
+
+    if (!token) {
+        return (
+            <Suspense>
+                <Login />
+            </Suspense>
+        )
     }
 
-    getToken();
-  }, [searchParams.get('code')])
+    return (
+        <Suspense>
+            <Player token={token} />
+        </Suspense>
+    )
+}
 
-  if (!token) {
-return <Login />
-  }
-    
-  return (
-    <Player token={token} />
-  )
+export default function Home() {
+    return (
+        <Suspense>
+            <Page />
+        </Suspense>
+    )
 }

@@ -19,23 +19,15 @@ const Page = () => {
     }, [searchParams.get('code')])
 
     if (!token) {
-        return (
-            <Suspense>
-                <Login />
-            </Suspense>
-        )
+        return <Login />
     }
 
-    return (
-        <Suspense>
-            <Player token={token} />
-        </Suspense>
-    )
+    return <Player token={token} />
 }
 
 export default function Home() {
     return (
-        <Suspense>
+        <Suspense fallback="Loading...">
             <Page />
         </Suspense>
     )

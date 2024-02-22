@@ -1,4 +1,5 @@
 'use client'
+import Script from 'next/script'
 import { useEffect, useRef, useState } from 'react'
 const {
     format,
@@ -38,9 +39,8 @@ function calculateOffset(startDate, currentDateTime, songDuration) {
     }
 }
 
-export const Player = ({ token }) => {
+const PlayerInSdk = ({ player, token }) => {
     const deviceIdR = useRef()
-    const [player, setPlayer] = useState()
 
     const [currentTrack, setCurrentTrack] = useState({
         loading: false,
@@ -77,6 +77,42 @@ export const Player = ({ token }) => {
 
         getTrackInfo()
     }, [])
+
+    useEffect(() => {
+        player.addListener('initialization_error', (e) =>
+            setCurrentTrack((t) => ({ ...t, error: true }))
+        )
+
+        player.addListener('ready', ({ device_id }) => {
+            deviceIdR.current = device_id
+        })
+
+        player.addListener('not_ready', ({ device_id }) => {
+            deviceIdR.current = device_id
+        })
+
+        // TODO
+        // When user pauses and resumes, it needs to jump to right timestamp
+        // When user tries and scrubs in the spotify app, jump back to right position
+        player.addListener('player_state_changed', async (state) => {
+            if (!state) {
+                return
+            }
+
+            if (state?.track_window?.current_track?.id !== trackId) {
+                onPlay()
+            }
+
+            // const position = state.position
+            //
+            // if (Math.abs(position - currentTime) > 5000) {
+            //     console.log('user has scrubbed', currentTime)
+            //     onPlay(currentTime)
+            // }
+        })
+
+        player.connect()
+    }, [token])
 
     const updateCurrentTime = () => {
         setInterval(() => {
@@ -123,60 +159,14 @@ export const Player = ({ token }) => {
         }
     }
 
-    useEffect(() => {
-        window.onSpotifyWebPlaybackSDKReady = () => {
-            const player = new window.Spotify.Player({
-                name: 'Medallion Community',
-                getOAuthToken: (cb) => {
-                    cb(token)
-                },
-                volume: 0.5,
-            })
-
-            setPlayer(player)
-
-            player.addListener('initialization_error', (e) =>
-                setCurrentTrack((t) => ({ ...t, error: true }))
-            )
-
-            player.addListener('ready', ({ device_id }) => {
-                deviceIdR.current = device_id
-            })
-
-            player.addListener('not_ready', ({ device_id }) => {
-                deviceIdR.current = device_id
-            })
-
-            // TODO
-            // When user pauses and resumes, it needs to jump to right timestamp
-            // When user tries and scrubs in the spotify app, jump back to right position
-            player.addListener('player_state_changed', async (state) => {
-                if (!state) {
-                    return
-                }
-
-                if (state?.track_window?.current_track?.id !== trackId) {
-                    onPlay()
-                }
-
-                // const position = state.position
-                //
-                // if (Math.abs(position - currentTime) > 5000) {
-                //     console.log('user has scrubbed', currentTime)
-                //     onPlay(currentTime)
-                // }
-            })
-
-            player.connect()
-        }
-    }, [currentTime])
+    useEffect(() => {}, [currentTime])
 
     if (!player) {
-        return (
-            <div className="container">
-                <b>Player not ready :(</b>
-            </div>
-        )
+        // return (
+        //     <div className="container">
+        //         <b>Player loading...</b>
+        //     </div>
+        // )
     }
 
     if (currentTrack.error) {
@@ -193,6 +183,10 @@ export const Player = ({ token }) => {
                 <b>Loading the listening party...</b>
             </div>
         )
+    }
+
+    const handlePause = () => {
+        player.pause()
     }
 
     const { track } = currentTrack
@@ -234,5 +228,43 @@ export const Player = ({ token }) => {
                 </div>
             ) : null}
         </div>
+    )
+}
+
+export const Player = ({ token }) => {
+    const [isSdkReady, setIsSdkReady] = useState(false)
+    const [player, setPlayer] = useState()
+
+    useEffect(() => {
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            const player = new window.Spotify.Player({
+                name: 'Medallion Community',
+                getOAuthToken: (cb) => {
+                    cb(token)
+                },
+                volume: 0.5,
+            })
+
+            setPlayer(player)
+        }
+    }, [token])
+
+    return (
+        <>
+            <Script
+                src="https://sdk.scdn.co/spotify-player.js"
+                onReady={() => {
+                    setTimeout(() => {
+                        setIsSdkReady(true)
+                    }, 1000)
+                }}
+            />
+
+            {isSdkReady && player ? (
+                <PlayerInSdk player={player} token={token} />
+            ) : (
+                <div className="container">Loading Spotify SDK...</div>
+            )}
+        </>
     )
 }

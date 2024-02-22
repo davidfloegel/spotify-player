@@ -75,44 +75,48 @@ const PlayerInSdk = ({ player, token }) => {
             }
         }
 
-        getTrackInfo()
-    }, [])
+        if (token) {
+            getTrackInfo()
+        }
+    }, [token])
 
     useEffect(() => {
-        player.addListener('initialization_error', (e) =>
-            setCurrentTrack((t) => ({ ...t, error: true }))
-        )
+        if (player) {
+            player.addListener('initialization_error', (e) =>
+                setCurrentTrack((t) => ({ ...t, error: true }))
+            )
 
-        player.addListener('ready', ({ device_id }) => {
-            deviceIdR.current = device_id
-        })
+            player.addListener('ready', ({ device_id }) => {
+                deviceIdR.current = device_id
+            })
 
-        player.addListener('not_ready', ({ device_id }) => {
-            deviceIdR.current = device_id
-        })
+            player.addListener('not_ready', ({ device_id }) => {
+                deviceIdR.current = device_id
+            })
 
-        // TODO
-        // When user pauses and resumes, it needs to jump to right timestamp
-        // When user tries and scrubs in the spotify app, jump back to right position
-        player.addListener('player_state_changed', async (state) => {
-            if (!state) {
-                return
-            }
+            // TODO
+            // When user pauses and resumes, it needs to jump to right timestamp
+            // When user tries and scrubs in the spotify app, jump back to right position
+            player.addListener('player_state_changed', async (state) => {
+                if (!state) {
+                    return
+                }
 
-            if (state?.track_window?.current_track?.id !== trackId) {
-                onPlay()
-            }
+                if (state?.track_window?.current_track?.id !== trackId) {
+                    onPlay()
+                }
 
-            // const position = state.position
-            //
-            // if (Math.abs(position - currentTime) > 5000) {
-            //     console.log('user has scrubbed', currentTime)
-            //     onPlay(currentTime)
-            // }
-        })
+                // const position = state.position
+                //
+                // if (Math.abs(position - currentTime) > 5000) {
+                //     console.log('user has scrubbed', currentTime)
+                //     onPlay(currentTime)
+                // }
+            })
 
-        player.connect()
-    }, [token])
+            player.connect()
+        }
+    }, [player, token])
 
     const updateCurrentTime = () => {
         setInterval(() => {
@@ -121,6 +125,10 @@ const PlayerInSdk = ({ player, token }) => {
     }
 
     const onPlay = async () => {
+        if (!token) {
+            return
+        }
+
         if (!currentTrack.track) {
             return
         }
@@ -159,14 +167,20 @@ const PlayerInSdk = ({ player, token }) => {
         }
     }
 
-    useEffect(() => {}, [currentTime])
-
     if (!player) {
         // return (
         //     <div className="container">
         //         <b>Player loading...</b>
         //     </div>
         // )
+    }
+
+    if (!token) {
+        return (
+            <div className="container">
+                <b>There is an error. You don't seem to have a token</b>
+            </div>
+        )
     }
 
     if (currentTrack.error) {
@@ -236,16 +250,18 @@ export const Player = ({ token }) => {
     const [player, setPlayer] = useState()
 
     useEffect(() => {
-        window.onSpotifyWebPlaybackSDKReady = () => {
-            const player = new window.Spotify.Player({
-                name: 'Medallion Community',
-                getOAuthToken: (cb) => {
-                    cb(token)
-                },
-                volume: 0.5,
-            })
+        if (token) {
+            window.onSpotifyWebPlaybackSDKReady = () => {
+                const player = new window.Spotify.Player({
+                    name: 'Medallion Community',
+                    getOAuthToken: (cb) => {
+                        cb(token)
+                    },
+                    volume: 0.5,
+                })
 
-            setPlayer(player)
+                setPlayer(player)
+            }
         }
     }, [token])
 
